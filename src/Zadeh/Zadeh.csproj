@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Zadeh</RootNamespace>
+    
+    <!-- NuGet Package Metadata -->
+    <PackageId>Zadeh.NET</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>DeegiTech</Authors>
+    <Company>DeegiTech Teknoloji ve Yazılım Ltd. Şti.</Company>
+    <Copyright>© 2026 DeegiTech Teknoloji ve Yazılım Ltd. Şti.</Copyright>
+    <Description>Kill your if/else chains. Lightweight, zero-dependency Mamdani fuzzy inference engine for .NET 8+. Smooth, human-like decisions in under 1ms. Licensed under AGPL-3.0 / Commercial dual license.</Description>
+    <PackageTags>fuzzy-logic;mamdani;inference-engine;decision-making;zadeh;AI;dotnet;rules-engine;soft-computing;membership-function</PackageTags>
+    <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
+    <PackageProjectUrl>https://zadehnet.com</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/deegitech/zadeh-net</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Initial stable release. Mamdani inference with 5 MF types, 3 defuzzification methods, fluent API, multi-input rules, weighted rules. 43 unit tests. Dual licensed under AGPL-3.0 and Commercial license.</PackageReleaseNotes>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,41 @@
+name: Publish to NuGet
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test --configuration Release --no-build
+
+    - name: Pack NuGet Package
+      run: dotnet pack src/Zadeh/Zadeh.csproj --configuration Release --output nupkg
+
+    - name: NuGet Login
+      uses: NuGet/login@v1
+      with:
+        user: deegitech
+
+    - name: Publish to NuGet
+      run: dotnet nuget push nupkg/*.nupkg --source https://api.nuget.org/v3/index.json
