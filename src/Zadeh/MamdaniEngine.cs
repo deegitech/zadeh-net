@@ -39,7 +39,7 @@ public enum DefuzzificationMethod
 /// Reference: E.H. Mamdani &amp; S. Assilian (1975)
 /// "An Experiment in Linguistic Synthesis with a Fuzzy Logic Controller"
 /// </summary>
-public sealed class MamdaniEngine
+public sealed partial class MamdaniEngine
 {
     private readonly List<FuzzyVariable> _inputs = new();
     private readonly List<FuzzyVariable> _outputs = new();
@@ -55,6 +55,12 @@ public sealed class MamdaniEngine
 
     /// <summary>All rules.</summary>
     public IReadOnlyList<FuzzyRule> Rules => _rules;
+
+    /// <summary>The defuzzification method this engine was configured with.</summary>
+    public DefuzzificationMethod Defuzzification => _defuzzMethod;
+
+    /// <summary>The number of sample points used for defuzzification.</summary>
+    public int Resolution => _resolution;
 
     /// <summary>
     /// Creates a new Mamdani inference engine.
@@ -117,13 +123,77 @@ public sealed class MamdaniEngine
 
     /// <summary>
     /// Evaluate the inference engine with crisp input values.
-    /// 
+    ///
     /// Pipeline: Fuzzification → Rule Evaluation → Aggregation → Defuzzification
     /// </summary>
     /// <param name="inputs">Variable name → crisp value.</param>
     /// <returns>Variable name → defuzzified crisp output value.</returns>
     /// <exception cref="ArgumentException">If required input variable is missing.</exception>
     public Dictionary<string, double> Evaluate(Dictionary<string, double> inputs)
+    {
+        var (_, _, results) = RunInference(inputs, collectActivations: false);
+
+        var crisp = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (name, result) in results)
+            crisp[name] = result.CrispValue;
+        return crisp;
+    }
+
+    /// <summary>
+    /// Like <see cref="Evaluate"/>, but returns a rich <see cref="FuzzyResult"/> per output:
+    /// crisp value, dominant linguistic set, and per-set activation strengths.
+    /// Use this when the caller needs the linguistic answer ("High") alongside the number.
+    /// </summary>
+    /// <param name="inputs">Variable name → crisp value.</param>
+    /// <returns>Variable name → detailed result.</returns>
+    /// <exception cref="ArgumentException">If required input variable is missing.</exception>
+    public Dictionary<string, FuzzyResult> EvaluateDetailed(Dictionary<string, double> inputs)
+    {
+        var (_, _, results) = RunInference(inputs, collectActivations: false);
+        return results;
+    }
+
+    /// <summary>
+    /// Runs a full inference and records everything: fuzzified inputs, every rule's firing
+    /// strength, and detailed outputs. The returned trace answers "why did the engine decide
+    /// this?" via <see cref="InferenceTrace.Explain"/>.
+    /// </summary>
+    /// <param name="inputs">Variable name → crisp value.</param>
+    /// <exception cref="ArgumentException">If required input variable is missing.</exception>
+    public InferenceTrace EvaluateWithTrace(Dictionary<string, double> inputs)
+    {
+        var (fuzzified, activations, results) = RunInference(inputs, collectActivations: true);
+
+        var inputsCopy = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        foreach (var inputVar in _inputs)
+            inputsCopy[inputVar.Name] = inputs[inputVar.Name];
+
+        var fuzzifiedView = new Dictionary<string, IReadOnlyDictionary<string, double>>(
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var (name, memberships) in fuzzified)
+            fuzzifiedView[name] = memberships;
+
+        return new InferenceTrace(inputsCopy, fuzzifiedView, activations!, results);
+    }
+
+    /// <summary>
+    /// Convenience overload: evaluate with a single output variable.
+    /// </summary>
+    public double EvaluateSingle(Dictionary<string, double> inputs)
+    {
+        var results = Evaluate(inputs);
+        return results.Values.First();
+    }
+
+    /// <summary>
+    /// Shared inference core: fuzzify → fire rules → aggregate per-set strengths → defuzzify.
+    /// Per-set aggregation keeps only the MAX strength per output set, which is equivalent to
+    /// aggregating duplicates during defuzzification (MAX is idempotent) but cheaper.
+    /// </summary>
+    private (Dictionary<string, Dictionary<string, double>> Fuzzified,
+             List<RuleActivation>? Activations,
+             Dictionary<string, FuzzyResult> Results)
+        RunInference(Dictionary<string, double> inputs, bool collectActivations)
     {
         // ── Step 1: Fuzzification ────────────────────────────────────────
         var fuzzified = new Dictionary<string, Dictionary<string, double>>(
@@ -138,51 +208,71 @@ public sealed class MamdaniEngine
         }
 
         // ── Step 2: Rule Evaluation ──────────────────────────────────────
-        // For each output variable, collect (set name, firing strength) pairs
-        var ruleOutputs = new Dictionary<string, List<(string SetName, double Strength)>>(
+        // For each output variable, aggregate MAX firing strength per output set
+        var ruleOutputs = new Dictionary<string, Dictionary<string, double>>(
             StringComparer.OrdinalIgnoreCase);
 
         foreach (var outputVar in _outputs)
-            ruleOutputs[outputVar.Name] = new List<(string, double)>();
+            ruleOutputs[outputVar.Name] = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+
+        var activations = collectActivations ? new List<RuleActivation>(_rules.Count) : null;
 
         foreach (var rule in _rules)
         {
             var strength = rule.Evaluate(fuzzified);
+            activations?.Add(new RuleActivation(rule, strength));
+
             if (strength > 0)
             {
                 var outputVarName = rule.Consequent.Variable.Name;
-                if (ruleOutputs.ContainsKey(outputVarName))
+                if (ruleOutputs.TryGetValue(outputVarName, out var setStrengths))
                 {
-                    ruleOutputs[outputVarName].Add((rule.Consequent.SetName, strength));
+                    var setName = rule.Consequent.SetName;
+                    if (!setStrengths.TryGetValue(setName, out var existing) || strength > existing)
+                        setStrengths[setName] = strength;
                 }
             }
         }
 
         // ── Step 3 + 4: Aggregation + Defuzzification ────────────────────
-        var results = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase);
+        var results = new Dictionary<string, FuzzyResult>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var outputVar in _outputs)
         {
-            var activations = ruleOutputs[outputVar.Name];
-            if (activations.Count == 0)
+            var setStrengths = ruleOutputs[outputVar.Name];
+
+            if (setStrengths.Count == 0)
             {
-                results[outputVar.Name] = (outputVar.Min + outputVar.Max) / 2.0; // fallback to midpoint
+                results[outputVar.Name] = new FuzzyResult(
+                    outputVar.Name,
+                    (outputVar.Min + outputVar.Max) / 2.0, // fallback to midpoint
+                    dominantSet: string.Empty,
+                    outputMemberships: setStrengths);
                 continue;
             }
 
-            results[outputVar.Name] = Defuzzify(outputVar, activations);
+            var activationList = new List<(string SetName, double Strength)>(setStrengths.Count);
+            var dominantSet = string.Empty;
+            var dominantStrength = double.MinValue;
+
+            foreach (var (setName, strength) in setStrengths)
+            {
+                activationList.Add((setName, strength));
+                if (strength > dominantStrength)
+                {
+                    dominantStrength = strength;
+                    dominantSet = setName;
+                }
+            }
+
+            results[outputVar.Name] = new FuzzyResult(
+                outputVar.Name,
+                Defuzzify(outputVar, activationList),
+                dominantSet,
+                setStrengths);
         }
 
-        return results;
-    }
-
-    /// <summary>
-    /// Convenience overload: evaluate with a single output variable.
-    /// </summary>
-    public double EvaluateSingle(Dictionary<string, double> inputs)
-    {
-        var results = Evaluate(inputs);
-        return results.Values.First();
+        return (fuzzified, activations, results);
     }
 
     // ─── Defuzzification ─────────────────────────────────────────────────

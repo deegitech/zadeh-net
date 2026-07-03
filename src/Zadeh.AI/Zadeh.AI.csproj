@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Zadeh.AI</RootNamespace>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>Zadeh.AI</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>DeegiTech</Authors>
+    <Company>DeegiTech Teknoloji ve Yazılım Ltd. Şti.</Company>
+    <Copyright>© 2026 DeegiTech Teknoloji ve Yazılım Ltd. Şti.</Copyright>
+    <Description>The AI companion to Zadeh.NET: turn LLM confidence into deterministic Execute/Confirm/Clarify/Reject decisions (ConfidenceGate), generate fuzzy rule sets from plain-language policy via any LLM (RuleSmith), compute adaptive similarity thresholds for RAG/semantic caching (AdaptiveThreshold), and expose fuzzy engines as MCP tools for AI agents. AI designs, fuzzy decides — zero hallucination at runtime. Uses only the .NET base library — no external dependencies. Licensed under AGPL-3.0 / Commercial dual license.</Description>
+    <PackageTags>fuzzy-logic;ai;llm;confidence;guardrails;mcp;agents;anthropic;openai;gemini;decision-making;zadeh;rag;semantic-cache</PackageTags>
+    <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
+    <PackageProjectUrl>https://zadehnet.com</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/deegitech/zadeh-net</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReleaseNotes>Initial release: ConfidenceGate (LLM confidence → deterministic action decisions), RuleSmith (natural language → fuzzy rules via Anthropic/OpenAI/Gemini or any IChatClient), AdaptiveThreshold (fuzzy-driven dynamic similarity thresholds), McpEngineServer (expose engines as Model Context Protocol tools). Zero external dependencies.</PackageReleaseNotes>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Zadeh/Zadeh.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Zadeh.AI.Tests" />
+  </ItemGroup>
+
+</Project>

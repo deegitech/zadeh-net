@@ -1,6 +1,24 @@
 namespace Zadeh;
 
 /// <summary>
+/// The shape family of a membership function. Recorded by every <see cref="FuzzySet"/>
+/// factory so sets can be serialized, visualized, and explained.
+/// </summary>
+public enum MembershipFunctionKind
+{
+    /// <summary>Triangle(left, peak, right)</summary>
+    Triangle,
+    /// <summary>Trapezoid(a, b, c, d)</summary>
+    Trapezoid,
+    /// <summary>LeftShoulder(midpoint, edge)</summary>
+    LeftShoulder,
+    /// <summary>RightShoulder(edge, midpoint)</summary>
+    RightShoulder,
+    /// <summary>Gaussian(mean, sigma)</summary>
+    Gaussian
+}
+
+/// <summary>
 /// A fuzzy set defined by a membership function that maps a crisp value to a degree of membership [0, 1].
 /// 
 /// Based on Lütfi Zadeh's fuzzy set theory (1965): instead of binary set membership (∈ or ∉),
@@ -20,11 +38,22 @@ public sealed class FuzzySet
     /// <summary>The linguistic label for this set (e.g., "Low", "Medium", "High").</summary>
     public string Name { get; }
 
+    /// <summary>The shape family this set was built from.</summary>
+    public MembershipFunctionKind Kind { get; }
+
+    /// <summary>
+    /// The factory parameters this set was built with, in factory-argument order
+    /// (e.g., Triangle → [left, peak, right]). Enables serialization and visualization.
+    /// </summary>
+    public IReadOnlyList<double> Parameters { get; }
+
     private readonly Func<double, double> _membershipFunction;
 
-    private FuzzySet(string name, Func<double, double> membershipFunction)
+    private FuzzySet(string name, MembershipFunctionKind kind, double[] parameters, Func<double, double> membershipFunction)
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));
+        Kind = kind;
+        Parameters = parameters;
         _membershipFunction = membershipFunction ?? throw new ArgumentNullException(nameof(membershipFunction));
     }
 
@@ -54,7 +83,7 @@ public sealed class FuzzySet
         if (left > peak || peak > right)
             throw new ArgumentException($"Triangle requires left ≤ peak ≤ right, got ({left}, {peak}, {right})");
 
-        return new FuzzySet(name, x =>
+        return new FuzzySet(name, MembershipFunctionKind.Triangle, new[] { left, peak, right }, x =>
         {
             if (x <= left || x >= right) return 0.0;
             if (x <= peak) return (x - left) / (peak - left);
@@ -76,7 +105,7 @@ public sealed class FuzzySet
         if (a > b || b > c || c > d)
             throw new ArgumentException($"Trapezoid requires a ≤ b ≤ c ≤ d, got ({a}, {b}, {c}, {d})");
 
-        return new FuzzySet(name, x =>
+        return new FuzzySet(name, MembershipFunctionKind.Trapezoid, new[] { a, b, c, d }, x =>
         {
             if (x <= a || x >= d) return 0.0;
             if (x >= b && x <= c) return 1.0;
@@ -100,7 +129,7 @@ public sealed class FuzzySet
         if (midpoint >= edge)
             throw new ArgumentException($"LeftShoulder requires midpoint < edge, got ({midpoint}, {edge})");
 
-        return new FuzzySet(name, x =>
+        return new FuzzySet(name, MembershipFunctionKind.LeftShoulder, new[] { midpoint, edge }, x =>
         {
             if (x <= midpoint) return 1.0;
             if (x >= edge) return 0.0;
@@ -123,7 +152,7 @@ public sealed class FuzzySet
         if (edge >= midpoint)
             throw new ArgumentException($"RightShoulder requires edge < midpoint, got ({edge}, {midpoint})");
 
-        return new FuzzySet(name, x =>
+        return new FuzzySet(name, MembershipFunctionKind.RightShoulder, new[] { edge, midpoint }, x =>
         {
             if (x <= edge) return 0.0;
             if (x >= midpoint) return 1.0;
@@ -140,7 +169,7 @@ public sealed class FuzzySet
         if (sigma <= 0)
             throw new ArgumentException($"Gaussian requires sigma > 0, got {sigma}");
 
-        return new FuzzySet(name, x =>
+        return new FuzzySet(name, MembershipFunctionKind.Gaussian, new[] { mean, sigma }, x =>
         {
             var exponent = -0.5 * Math.Pow((x - mean) / sigma, 2);
             return Math.Exp(exponent);

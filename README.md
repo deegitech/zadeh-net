@@ -5,7 +5,7 @@
 [![NuGet](https://img.shields.io/nuget/v/Zadeh.NET.svg)](https://www.nuget.org/packages/Zadeh.NET)
 [![License](https://img.shields.io/badge/license-AGPL--3.0%20%2F%20Commercial-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-8.0+-purple.svg)](https://dotnet.microsoft.com/)
-[![Tests](https://img.shields.io/badge/tests-43%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-65%20passed-brightgreen.svg)]()
 
 Lightweight, zero-dependency Mamdani fuzzy logic inference engine for .NET.  
 Smooth, human-like decisions in **< 1ms**.
@@ -246,6 +246,102 @@ var engine = new MamdaniEngine()
     .Rule(FuzzyRule.If(temperature.Is("Hot")).Then(fanSpeed.Is("Fast")));
 ```
 
+### 🔍 Explainability — "Why did the engine decide this?" *(new in 1.5)*
+
+Every decision can produce a full audit trail. Unlike a neural network, a fuzzy engine
+can always show its work — critical for enterprise, compliance, and AI-agent feedback loops.
+
+```csharp
+var trace = engine.EvaluateWithTrace(new() { ["Demand"] = 72, ["Stock"] = 18 });
+Console.WriteLine(trace.Explain());
+```
+```
+INPUTS
+  Demand = 72  →  High: 0.35, Medium: 0.12, Low: 0.00
+  Stock = 18   →  Scarce: 0.47, Normal: 0.00, Surplus: 0.00
+RULES
+  ✓ [0.35] IF Demand=High AND Stock=Scarce THEN Price=Premium (w=1.00)
+  ✗ [0.00] IF Demand=Low AND Stock=Surplus THEN Price=Discount (w=1.00)
+OUTPUTS
+  Price = 128.4 (dominant: Premium; activations: Premium: 0.35)
+```
+
+### 📊 Detailed Results — linguistic answer + number *(new in 1.5)*
+
+```csharp
+var result = engine.EvaluateDetailed(inputs)["Price"];
+result.CrispValue;         // 128.4
+result.DominantSet;        // "Premium" — the linguistic answer
+result.OutputMemberships;  // { Premium: 0.35, Normal: 0.12 }
+result.AnyRuleFired;       // false → midpoint fallback was used
+```
+
+### 📄 JSON Rule Loading — rules as configuration *(new in 1.5)*
+
+Define the whole engine in JSON: business teams tune rules without recompiling,
+and LLMs can *generate* rule sets that stay fully deterministic at runtime.
+Uses only `System.Text.Json` from the .NET base library — still zero external dependencies.
+
+```csharp
+var engine = MamdaniEngine.FromJson(File.ReadAllText("pricing-rules.json"));
+var json = engine.ToJson(); // round-trip safe
+```
+```json
+{
+  "defuzzification": "centroid",
+  "inputs": [
+    { "name": "Demand", "min": 0, "max": 100,
+      "sets": [
+        { "name": "Low",  "type": "leftShoulder",  "params": [15, 35] },
+        { "name": "High", "type": "rightShoulder", "params": [65, 85] } ] }
+  ],
+  "outputs": [
+    { "name": "Price", "min": 50, "max": 150,
+      "sets": [ { "name": "Premium", "type": "rightShoulder", "params": [120, 145] } ] }
+  ],
+  "rules": [
+    { "if": { "Demand": "High" }, "then": { "Price": "Premium" } }
+  ]
+}
+```
+
+---
+
+## Why not Accord.NET / AForge.NET?
+
+The only established fuzzy options in .NET are the `Fuzzy` modules of AForge.NET (last release 2013)
+and Accord.NET (last release 2017, repository archived). Zadeh.NET is built for today's .NET:
+
+| | AForge / Accord Fuzzy | Zadeh.NET |
+|---|---|---|
+| Maintenance | Archived / abandoned | ✅ Active |
+| Platform | Legacy .NET Framework | ✅ .NET 8+ |
+| Dependencies | Part of a large ML/vision suite | ✅ Zero — single small package |
+| Membership functions | Trapezoid-derived only | ✅ Triangle, Trapezoid, Shoulders, **Gaussian** |
+| Defuzzification | Centroid only | ✅ Centroid, Bisector, MeanOfMaximum |
+| Rule definition | String parsing | ✅ Type-safe fluent API **+ JSON config** |
+| Explainability | — | ✅ Full rule trace with `Explain()` |
+| Linguistic result | — | ✅ `DominantSet` + activations per output |
+| Measured performance | — | ✅ ~2–4 µs per inference (BenchmarkDotNet) |
+
+---
+
+## Benchmarks
+
+Measured with BenchmarkDotNet (`benchmarks/Zadeh.Benchmarks`, ShortRun, Apple Silicon, .NET 8):
+
+| Scenario | Mean | Allocated |
+|---|---:|---:|
+| 1 input, 3 rules (game difficulty) | 2.1 µs | 1.45 KB |
+| 2 inputs, 5 rules (dynamic pricing) | 2.3 µs | 1.66 KB |
+| 3 inputs, 12 rules (AI confidence scoring) | 4.0 µs | 1.88 KB |
+| `EvaluateDetailed` (2 in, 5 rules) | 2.2 µs | 1.38 KB |
+| `EvaluateWithTrace` (2 in, 5 rules) | 2.3 µs | 2.10 KB |
+| `FromJson` (build engine from config) | 13.6 µs | 30.6 KB |
+
+**~250,000+ decisions per second** on a single core. Tracing is effectively free —
+explainability costs nothing at runtime.
+
 ---
 
 ## Use Cases
@@ -267,28 +363,107 @@ var engine = new MamdaniEngine()
 
 | Spec | Value |
 |------|-------|
-| Dependencies | **Zero** |
-| Code size | ~400 lines |
-| Inference time | **< 1ms** (typical) |
+| Dependencies | **Zero** (JSON support uses only the .NET base library) |
+| Code size | ~1,200 lines |
+| Inference time | **~2–4 µs** (measured, see Benchmarks) |
 | Thread safety | ✅ Immutable after construction |
 | Deterministic | ✅ Same inputs → always same output |
 | Target | .NET 8.0+ |
-| Tests | 43 passing |
+| Tests | 65 passing |
+
+---
+
+## 🤖 Zadeh.AI — the AI companion package
+
+**The duo: AI decides what the user wants; Zadeh decides whether to trust it.**
+LLMs are powerful but non-deterministic and expensive per call. `Zadeh.AI` pairs them
+with deterministic, explainable, microsecond fuzzy judgment — and like the core, it
+uses only the .NET base library.
+
+```bash
+dotnet add package Zadeh.AI
+```
+
+### ConfidenceGate — LLM confidence → action decision
+
+```csharp
+using Zadeh.AI;
+
+var gate = ConfidenceGate.CreateDefault();
+var decision = gate.Decide(confidence: 0.68, userHistory: 0.72, contextRelevance: 0.5);
+
+decision.Action;       // GateAction.Execute | Confirm | Clarify | Reject
+decision.Score;        // 0-100
+decision.Explanation;  // full rule-by-rule trace — auditable, agent-feedable
+```
+
+Same 0.68 confidence executes for a frequent user in a matching context and asks for
+clarification for a stranger — deterministically, with a trace, at zero token cost.
+
+### RuleSmith — plain language → fuzzy rules (AI designs, fuzzy decides)
+
+```csharp
+using Zadeh.AI;
+using Zadeh.AI.Providers;
+
+var smith = new RuleSmith(new AnthropicChatClient(apiKey)); // or OpenAIChatClient, GeminiChatClient, or your own IChatClient
+var result = await smith.GenerateAsync(
+    "Decide order priority from customer activity (0-1) and order size (0-10000). " +
+    "Very active customers with large orders get top priority.");
+
+File.WriteAllText("priority-rules.json", result.Json);  // review, version, deploy
+var engine = result.Engine;                              // runtime stays 100% deterministic
+```
+
+The LLM runs **once, at design time**; generated JSON is validated by actually building
+the engine (with bounded auto-repair on validation errors). No hallucination can reach
+the runtime decision path.
+
+### AdaptiveThreshold — dynamic cutoffs for semantic caching / RAG
+
+```csharp
+var threshold = AdaptiveThreshold.CreateDefault(minThreshold: 0.85, maxThreshold: 0.97);
+double cutoff = threshold.Compute(volatility: 0.8, freshness: 0.3);
+if (cosineSimilarity >= cutoff) { /* cache hit */ }
+```
+
+Volatile or stale data tightens the cutoff; stable, fresh data relaxes it — per lookup,
+explainably, instead of one hardcoded constant that is always wrong somewhere.
+
+### McpEngineServer — fuzzy judgment as an agent tool
+
+```csharp
+using Zadeh.AI.Mcp;
+
+await new McpEngineServer("pricing-judge")
+    .AddEngine("decide_price", "Computes the price multiplier from demand and stock.", pricingEngine)
+    .RunOnStdioAsync();
+```
+
+Any MCP-capable AI agent (Claude, etc.) can now call your fuzzy engines as tools —
+deterministic numbers with explanations, instead of the model improvising.
 
 ---
 
 ## Roadmap
 
-### v1.5 — Developer Experience (Q3 2026)
-- JSON/YAML rule loading (runtime configuration)
-- Rule explainability: "Why did the engine decide this?"
-- ASP.NET Core DI integration package
+### v1.5 — Developer Experience ✅ (shipped)
+- ✅ JSON rule loading (runtime configuration, round-trip `ToJson`)
+- ✅ Rule explainability: `EvaluateWithTrace()` / `Explain()`
+- ✅ Detailed results: `EvaluateDetailed()` with dominant set + activations
+- ✅ BenchmarkDotNet suite with published numbers
+- ASP.NET Core DI integration package (next)
 
-### v2.0 — Advanced Inference (R&D)
+### Zadeh.AI v1.0 — the AI companion package ✅ (shipped)
+- ✅ **ConfidenceGate** — LLM confidence scores → Execute / Confirm / Clarify / Reject decisions
+- ✅ **RuleSmith** — LLM generates rule sets from plain-language policy; runtime stays 100% deterministic
+- ✅ **McpEngineServer** — expose any engine as a Model Context Protocol tool for AI agents
+- ✅ **AdaptiveThreshold** — fuzzy-driven dynamic similarity thresholds for RAG / semantic caching
+
+### v3.0 — Advanced Inference (R&D)
 - Takagi-Sugeno inference engine
 - Type-2 Fuzzy Sets (uncertainty of uncertainty)
-- Data-driven dynamic membership function generation
-- Genetic algorithm parameter optimization
+- Data-driven membership function tuning (ANFIS-lite)
 - Visualization package
 
 ---
