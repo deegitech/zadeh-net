@@ -13,3 +13,6 @@ obj/
 ## OS
 .DS_Store
 Thumbs.db
+
+# BenchmarkDotNet run logs (results/ is kept as evidence)
+benchmarks/**/BenchmarkDotNet.Artifacts/*.log

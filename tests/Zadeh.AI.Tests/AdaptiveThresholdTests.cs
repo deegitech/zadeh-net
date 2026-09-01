@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 DeegiTech Teknoloji ve Yazılım Ltd. Şti.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 using Xunit;
 using Zadeh;
 using Zadeh.AI;

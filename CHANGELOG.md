@@ -2,6 +2,16 @@
 
 All notable changes to Zadeh.NET will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- **JSON schema versioning**: engine documents now carry `"schemaVersion": 1`.
+  `ToJson()` writes it; `FromJson()` accepts documents without a version (treated
+  as version 1, so all existing documents keep loading) and rejects documents
+  from a newer schema with a clear upgrade message (`MamdaniEngine.CurrentSchemaVersion`).
+  RuleSmith's generation template includes the version field.
+- **SECURITY.md**: vulnerability disclosure policy for both packages.
+
 ## Zadeh.AI [1.0.0] — 2026-07-04
 
 New companion package: **Zadeh.AI** — the AI duo for Zadeh.NET. The core package

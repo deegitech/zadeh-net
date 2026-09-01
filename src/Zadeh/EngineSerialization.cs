@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 DeegiTech Teknoloji ve Yazılım Ltd. Şti.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -12,6 +16,7 @@ namespace Zadeh;
 /// Document shape:
 /// <code>
 /// {
+///   "schemaVersion": 1,                      // optional; missing = 1. Newer versions are rejected.
 ///   "defuzzification": "centroid",          // optional: centroid | bisector | meanOfMaximum
 ///   "resolution": 200,                       // optional
 ///   "inputs":  [ { "name": "Demand", "min": 0, "max": 100,
@@ -29,11 +34,18 @@ namespace Zadeh;
 public sealed partial class MamdaniEngine
 {
     /// <summary>
+    /// The engine-document schema version this library writes and the highest it can read.
+    /// Documents without a <c>schemaVersion</c> property are treated as version 1.
+    /// </summary>
+    public const int CurrentSchemaVersion = 1;
+
+    /// <summary>
     /// Builds a fully configured engine from a JSON document (see class-level docs for the shape).
     /// All references are validated during parsing: unknown variables, sets, or shape types
     /// fail immediately with a descriptive message.
     /// </summary>
-    /// <exception cref="ArgumentException">On structural or semantic errors in the document.</exception>
+    /// <exception cref="ArgumentException">On structural or semantic errors in the document,
+    /// including a <c>schemaVersion</c> newer than this library supports.</exception>
     /// <exception cref="JsonException">On malformed JSON.</exception>
     public static MamdaniEngine FromJson(string json)
     {
@@ -42,6 +54,28 @@ public sealed partial class MamdaniEngine
 
         var root = JsonNode.Parse(json)?.AsObject()
             ?? throw new ArgumentException("JSON root must be an object.");
+
+        // ── Schema version ───────────────────────────────────────────────
+        if (root["schemaVersion"] is JsonNode versionNode)
+        {
+            int version;
+            try
+            {
+                version = versionNode.GetValue<int>();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or FormatException)
+            {
+                throw new ArgumentException(
+                    $"'schemaVersion' must be an integer, got '{versionNode.ToJsonString()}'.");
+            }
+
+            if (version < 1)
+                throw new ArgumentException($"'schemaVersion' must be >= 1, got {version}.");
+            if (version > CurrentSchemaVersion)
+                throw new ArgumentException(
+                    $"Document uses schema version {version}, but this version of Zadeh.NET supports " +
+                    $"up to version {CurrentSchemaVersion}. Upgrade the Zadeh.NET package to load this document.");
+        }
 
         // ── Engine options ───────────────────────────────────────────────
         var defuzz = DefuzzificationMethod.Centroid;
@@ -101,6 +135,7 @@ public sealed partial class MamdaniEngine
     {
         var root = new JsonObject
         {
+            ["schemaVersion"] = CurrentSchemaVersion,
             ["defuzzification"] = ToCamelCase(_defuzzMethod.ToString()),
             ["resolution"] = _resolution,
             ["inputs"] = SerializeVariables(_inputs),

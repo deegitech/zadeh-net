@@ -3,12 +3,14 @@
 **Kill your if/else chains. Embrace fuzzy decisions.**
 
 [![NuGet](https://img.shields.io/nuget/v/Zadeh.NET.svg)](https://www.nuget.org/packages/Zadeh.NET)
+[![Downloads](https://img.shields.io/nuget/dt/Zadeh.NET.svg)](https://www.nuget.org/packages/Zadeh.NET)
+[![CI](https://github.com/deegitech/zadeh-net/actions/workflows/ci.yml/badge.svg)](https://github.com/deegitech/zadeh-net/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-AGPL--3.0%20%2F%20Commercial-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-8.0+-purple.svg)](https://dotnet.microsoft.com/)
-[![Tests](https://img.shields.io/badge/tests-65%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-108%20passed-brightgreen.svg)]()
 
 Lightweight, zero-dependency Mamdani fuzzy logic inference engine for .NET.  
-Smooth, human-like decisions in **< 1ms**.
+Deterministic, explainable decisions in **2–4 µs** (measured with BenchmarkDotNet — see [`benchmarks/`](benchmarks/)).
 
 Named after **[Lütfi Zadeh](https://en.wikipedia.org/wiki/Lotfi_A._Zadeh)** (1921–2017), the founder of fuzzy set theory.
 

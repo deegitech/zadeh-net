@@ -34,6 +34,6 @@ dotnet test
 - Documentation improvements
 - Bug reports with reproduction steps
 
-## License
+## License and CLA
 
-By contributing, you agree that your contributions will be dual-licensed under AGPL-3.0 and the DeegiTech Commercial License.
+By contributing, you agree that your contributions will be dual-licensed under AGPL-3.0 and the DeegiTech Commercial License, and you accept the [Contributor License Agreement](CLA.md). Submitting a pull request constitutes acceptance — no signature needed.

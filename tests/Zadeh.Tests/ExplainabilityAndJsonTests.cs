@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 DeegiTech Teknoloji ve Yazılım Ltd. Şti.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 using Xunit;
 
 namespace Zadeh.Tests;
@@ -289,6 +293,55 @@ public class JsonSerializationTests
         Assert.Contains("\"defuzzification\": \"centroid\"", json);
         Assert.Contains("\"resolution\": 200", json);
         Assert.Contains("\"weight\": 0.8", json);
+    }
+
+    [Fact]
+    public void ToJson_EmitsCurrentSchemaVersion()
+    {
+        var engine = MamdaniEngine.FromJson(ValidDocument);
+
+        Assert.Contains($"\"schemaVersion\": {MamdaniEngine.CurrentSchemaVersion}", engine.ToJson());
+    }
+
+    [Fact]
+    public void FromJson_MissingSchemaVersion_TreatedAsVersion1()
+    {
+        // ValidDocument has no schemaVersion property — legacy documents must keep loading.
+        var engine = MamdaniEngine.FromJson(ValidDocument);
+
+        Assert.Equal(2, engine.Inputs.Count);
+    }
+
+    [Fact]
+    public void FromJson_ExplicitVersion1_Loads()
+    {
+        var json = string.Concat("{ \"schemaVersion\": 1,", ValidDocument.TrimStart().AsSpan(1));
+
+        var engine = MamdaniEngine.FromJson(json);
+
+        Assert.Equal(2, engine.Inputs.Count);
+    }
+
+    [Fact]
+    public void FromJson_NewerSchemaVersion_ThrowsWithUpgradeHint()
+    {
+        var json = string.Concat("{ \"schemaVersion\": 2,", ValidDocument.TrimStart().AsSpan(1));
+
+        var ex = Assert.Throws<ArgumentException>(() => MamdaniEngine.FromJson(json));
+
+        Assert.Contains("schema version 2", ex.Message);
+        Assert.Contains("Upgrade", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-1")]
+    [InlineData("\"bir\"")]
+    public void FromJson_InvalidSchemaVersion_Throws(string versionLiteral)
+    {
+        var json = string.Concat($"{{ \"schemaVersion\": {versionLiteral},", ValidDocument.TrimStart().AsSpan(1));
+
+        Assert.Throws<ArgumentException>(() => MamdaniEngine.FromJson(json));
     }
 
     [Theory]

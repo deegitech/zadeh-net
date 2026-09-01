@@ -1,0 +1,9 @@
+version = 1
+
+# Kaynak (.cs) dosyaları kendi SPDX header'larını taşır; aşağıdaki toplu
+# açıklama doküman, proje ve yapılandırma dosyalarını kapsar.
+[[annotations]]
+path = ["**/*.md", "**/*.csproj", "**/*.sln", "**/*.json", "**/*.yml", ".gitignore"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 DeegiTech Teknoloji ve Yazılım Ltd. Şti."
+SPDX-License-Identifier = "AGPL-3.0-only"

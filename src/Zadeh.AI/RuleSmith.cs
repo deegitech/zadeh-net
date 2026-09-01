@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 DeegiTech Teknoloji ve Yazılım Ltd. Şti.
+//
+// SPDX-License-Identifier: AGPL-3.0-only
+
 using System.Text.Json;
 
 namespace Zadeh.AI;
@@ -70,6 +74,7 @@ public sealed class RuleSmith
         Output ONLY a single JSON object, no prose, no markdown fences, in exactly this shape:
 
         {
+          "schemaVersion": 1,
           "defuzzification": "centroid",
           "inputs": [
             { "name": "VariableName", "min": 0, "max": 1,
