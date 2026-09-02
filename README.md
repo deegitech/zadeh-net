@@ -1,6 +1,6 @@
 # 🔮 Zadeh.NET
 
-**Kill your if/else chains. Embrace fuzzy decisions.**
+**Decisions your software can explain — in microseconds, with zero dependencies.**
 
 [![NuGet](https://img.shields.io/nuget/v/Zadeh.NET.svg)](https://www.nuget.org/packages/Zadeh.NET)
 [![Downloads](https://img.shields.io/nuget/dt/Zadeh.NET.svg)](https://www.nuget.org/packages/Zadeh.NET)
@@ -9,8 +9,13 @@
 [![.NET](https://img.shields.io/badge/.NET-8.0+-purple.svg)](https://dotnet.microsoft.com/)
 [![Tests](https://img.shields.io/badge/tests-108%20passed-brightgreen.svg)]()
 
-Lightweight, zero-dependency Mamdani fuzzy logic inference engine for .NET.  
-Deterministic, explainable decisions in **2–4 µs** (measured with BenchmarkDotNet — see [`benchmarks/`](benchmarks/)).
+A zero-dependency Mamdani fuzzy inference engine for .NET — built to sit between a
+probabilistic model and the action it triggers.
+
+Every decision is **deterministic** (same input, same output, always), **explainable**
+(a rule-by-rule trace a human can read), and costs **2–4 µs** — measured with
+BenchmarkDotNet, artifacts in [`benchmarks/`](benchmarks/). Cheap enough to run on every
+request; readable enough to hand to an auditor.
 
 Named after **[Lütfi Zadeh](https://en.wikipedia.org/wiki/Lotfi_A._Zadeh)** (1921–2017), the founder of fuzzy set theory.
 
@@ -309,10 +314,18 @@ var json = engine.ToJson(); // round-trip safe
 
 ---
 
-## Why not Accord.NET / AForge.NET?
+## How this compares
 
-The only established fuzzy options in .NET are the `Fuzzy` modules of AForge.NET (last release 2013)
-and Accord.NET (last release 2017, repository archived). Zadeh.NET is built for today's .NET:
+The `Fuzzy` modules of AForge.NET (last release 2013) and Accord.NET (last release 2017,
+repository archived) were the long-standing options in .NET; both are now unmaintained.
+Other C# fuzzy engines do exist and are worth knowing — [FuzzySharper](https://github.com/b-tapia-morales/FuzzySharper)
+is an actively developed general-purpose fuzzy expert system, and [NT2FIS](https://github.com/CC-FCQI-UABC/NT2FIS)
+implements interval type-2 inference. If you need a general expert-system toolkit, look at those first.
+
+Zadeh.NET is narrower on purpose: it is built as a **decision layer for software that must
+justify itself** — explainability, determinism and microsecond cost are treated as hard
+requirements rather than features. The comparison below is against the legacy libraries
+most .NET users still land on:
 
 | | AForge / Accord Fuzzy | Zadeh.NET |
 |---|---|---|

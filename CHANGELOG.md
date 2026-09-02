@@ -20,7 +20,9 @@ stays zero-dependency; Zadeh.AI itself also uses only the .NET base library.
 ### Added
 - **ConfidenceGate**: turns an LLM confidence score (+ optional user-history and
   context-relevance signals) into a deterministic, explainable action decision —
-  Execute / Confirm / Clarify / Reject. Default 12-rule production-proven profile,
+  Execute / Confirm / Clarify / Reject. Default 13-rule production-proven profile
+  (12 combination rules plus a weighted catch-all that guarantees low-confidence
+  inputs always activate at least one rule),
   or bring your own engine (`FromEngine`, `FromJson`). Every decision carries a
   full rule trace (`decision.Explanation`).
 - **RuleSmith**: generates a complete fuzzy engine from a plain-language policy via

@@ -14,5 +14,5 @@ obj/
 .DS_Store
 Thumbs.db
 
-# BenchmarkDotNet run logs (results/ is kept as evidence)
+# BenchmarkDotNet koşum logları (results/ kanıt olarak tutulur)
 benchmarks/**/BenchmarkDotNet.Artifacts/*.log

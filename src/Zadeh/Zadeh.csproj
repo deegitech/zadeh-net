@@ -12,7 +12,7 @@
     <Authors>DeegiTech</Authors>
     <Company>DeegiTech Teknoloji ve Yazılım Ltd. Şti.</Company>
     <Copyright>© 2026 DeegiTech Teknoloji ve Yazılım Ltd. Şti.</Copyright>
-    <Description>Kill your if/else chains. Lightweight, zero-dependency Mamdani fuzzy inference engine for .NET 8+. Smooth, human-like decisions in under 1ms. Licensed under AGPL-3.0 / Commercial dual license.</Description>
+    <Description>Decisions your software can explain. Zero-dependency Mamdani fuzzy inference engine for .NET 8+, built to sit between a probabilistic model and the action it triggers: deterministic (same input, same output), explainable (human-readable rule trace via Explain()), and 2-4 microseconds per decision (BenchmarkDotNet). Cheap enough for every request, readable enough for an auditor. Licensed under AGPL-3.0 / Commercial dual license.</Description>
     <PackageTags>fuzzy-logic;mamdani;inference-engine;decision-making;zadeh;AI;dotnet;rules-engine;soft-computing;membership-function</PackageTags>
     <PackageLicenseExpression>AGPL-3.0-only</PackageLicenseExpression>
     <PackageProjectUrl>https://zadehnet.com</PackageProjectUrl>
